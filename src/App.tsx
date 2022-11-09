@@ -75,6 +75,7 @@ const App = () => {
   const onPressMarker = useCallback(
     ({lat, lon, index}: {lat: number; lon: number; index: number}) =>
       () => {
+        console.log('on')
         active.value = index;
         // mapRef.current?.animateToRegion(
         //   {...region, latitude: lat, longitude: lon}, //TODO: navigate to region

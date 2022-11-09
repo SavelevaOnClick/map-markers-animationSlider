@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {StyleSheet, View} from 'react-native';
 import {LatLng, Marker} from 'react-native-maps';
-import Animated, { interpolateColor, SharedValue, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import Animated, { interpolateColor, runOnJS, SharedValue, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 type TProps = {
   coordinate: LatLng;
   onPress: () => void;
@@ -9,18 +9,22 @@ type TProps = {
   active: SharedValue<number>;
 };
 const CustomMarker: React.FC<TProps> = ({coordinate, onPress, active, index}) => {
+  const [isTrack, setIsTrack] = useState(false);
 
   const containerStyleAnimated = useAnimatedStyle(() => {
+    
+    runOnJS(setIsTrack)(active.value === index  ? true : false)
+
     return {
       backgroundColor: active.value === index ? "pink" : "white",
     }
-  })
+  }, [])
   const onPressHandler = useCallback(() => {
       onPress();
   }, [])
 
   return (
-    <Marker coordinate={coordinate} tracksViewChanges={false} onPress={onPressHandler}>
+    <Marker coordinate={coordinate} tracksViewChanges={isTrack} onPress={onPressHandler}>
       <Animated.View style={[styles.container, containerStyleAnimated]}>
         <View style={styles.heartContainer}>
           <View style={styles.heartPartMain}>
@@ -85,3 +89,7 @@ const styles = StyleSheet.create({
     paddingTop: 6 / 2,
   },
 })
+
+function useSate(arg0: boolean): [any, any] {
+  throw new Error('Function not implemented.');
+}
