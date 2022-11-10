@@ -75,12 +75,7 @@ const App = () => {
   const onPressMarker = useCallback(
     ({lat, lon, index}: {lat: number; lon: number; index: number}) =>
       () => {
-        console.log('on')
         active.value = index;
-        // mapRef.current?.animateToRegion(
-        //   {...region, latitude: lat, longitude: lon}, //TODO: navigate to region
-        //   300,
-        // );
         refSlider.current?.scrollTo({
           x: index * (width - DIFFERENCE_X),
           y: 0,
@@ -148,8 +143,10 @@ const App = () => {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
+        moveOnMarkerPress={false} //doesn't navigate to marker when it's  onPress
+        loadingEnabled={true}
         style={styles.map}
-        onRegionChangeComplete={onRegionChangeComplete}
+        onRegionChangeComplete={onRegionChangeComplete} 
         minZoomLevel={2}
         // provider={PROVIDER_GOOGLE}
         initialRegion={region}>
