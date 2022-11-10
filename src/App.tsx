@@ -75,9 +75,11 @@ const App = () => {
   const onPressMarker = useCallback(
     ({lat, lon, index}: {lat: number; lon: number; index: number}) =>
       () => {
+        console.log('here', index, index * (width - DIFFERENCE_X) )
         active.value = index;
         refSlider.current?.scrollTo({
           x: index * (width - DIFFERENCE_X),
+          // x: 50,
           y: 0,
           animated: true,
         });
@@ -88,7 +90,7 @@ const App = () => {
   const markers = useMemo(
     () =>
       apartments.length
-        ? apartments.map((apartment, index) => {
+        ? apartments.slice(0, 5).map((apartment, index) => {
             return (
               <CustomMarker
                 key={apartment.id}
@@ -154,7 +156,7 @@ const App = () => {
       </MapView>
       <MapBar mapZoomIn={mapZoomIn} mapZoomOut={mapZoomOut} />
       <View style={styles.sliderContainer}>
-        <Slider data={apartments} ref={refSlider} onScroll={onScrollHandler} />
+        <Slider data={apartments.slice(0, 5)} ref={refSlider} onScroll={onScrollHandler} />
       </View>
     </View>
   );

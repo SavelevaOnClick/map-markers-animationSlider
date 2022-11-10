@@ -4,12 +4,13 @@ import assets from '../../assets';
 import {ITEM_OFFSET_X, ITEM_WIDTH, MARGINS, width} from '../../constants';
 import {TApartment} from '../../types';
 import Image from 'react-native-fast-image';
+
 type TProps = {
   itemData: TApartment;
   index: number;
+  isLast: boolean;
 };
-
-const SliderItem: React.FC<TProps> = ({itemData, index}) => {
+const SliderItem: React.FC<TProps> = ({itemData, index, isLast}) => {
 
   const imageUri = useMemo(
     () =>
@@ -20,7 +21,7 @@ const SliderItem: React.FC<TProps> = ({itemData, index}) => {
   );
 
   const containerStyle = useMemo(
-    () => [styles.container, index === 0 && {marginLeft: ITEM_OFFSET_X / 2}],
+    () => [styles.container, index === 0 ? {marginLeft: ITEM_OFFSET_X / 2} : {}, isLast && {marginRight: ITEM_OFFSET_X / 2} ],
     [],
   );
 

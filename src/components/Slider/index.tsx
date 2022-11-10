@@ -15,8 +15,8 @@ type TProps = {
 const Slider = React.forwardRef<ScrollView, TProps>(
   ({data, onScroll}, ref: React.LegacyRef<ScrollView>) => {
     const onScrollEndHandler = useCallback(
-      (event: NativeSyntheticEvent<NativeScrollEvent>) =>
-        onScroll(event.nativeEvent.contentOffset.x / (width - DIFFERENCE_X)),
+      (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        onScroll(event.nativeEvent.contentOffset.x / (width - DIFFERENCE_X))},
       [],
     );
 
@@ -27,11 +27,10 @@ const Slider = React.forwardRef<ScrollView, TProps>(
         bounces={false}
         ref={ref}
         onMomentumScrollEnd={onScrollEndHandler}
-        scrollEventThrottle={0}
         decelerationRate="fast"
         snapToInterval={width - DIFFERENCE_X}>
         {data.map((item, index) => (
-          <SliderItem itemData={item} key={item.id} index={index} />
+          <SliderItem itemData={item} key={item.id} index={index} isLast={data.length - 1 === index} />
         ))}
       </ScrollView>
     );

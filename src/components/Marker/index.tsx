@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { StyleSheet, View} from 'react-native';
+import { StyleSheet} from 'react-native';
 import {LatLng, Marker} from 'react-native-maps';
 import Animated, {
   runOnJS,
@@ -18,11 +18,11 @@ const CustomMarker: React.FC<TProps> = ({
   active,
   index,
 }) => {
-  const [opacity, setOpacity] = useState(active.value ? 0.3 : 1);
+  const [opacity, setOpacity] = useState(active.value == index  ? 0.3 : 1);
 
   useDerivedValue(() => {
     return (
-      active.value && runOnJS(setOpacity)(active.value === index ? 0.3 : 1)
+      active.value !== -1 && runOnJS(setOpacity)(active.value === index ? 0.3 : 1)
     );
   });
   return (
