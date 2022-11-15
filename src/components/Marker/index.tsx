@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
-import { StyleSheet} from 'react-native';
-import {LatLng, Marker} from 'react-native-maps';
+import {StyleSheet, Text, } from 'react-native';
+import {LatLng, Marker, } from 'react-native-maps';
 import Animated, {
   runOnJS,
   SharedValue,
@@ -10,6 +10,7 @@ type TProps = {
   coordinate: LatLng;
   onPress: () => void;
   index: number;
+  amount?: number;
   active: SharedValue<number>;
 };
 const CustomMarker: React.FC<TProps> = ({
@@ -17,23 +18,28 @@ const CustomMarker: React.FC<TProps> = ({
   onPress,
   active,
   index,
+  amount,
 }) => {
-  const [opacity, setOpacity] = useState(active.value == index  ? 0.3 : 1);
+  const [opacity, setOpacity] = useState(active.value == index ? 0.3 : 1);
 
   useDerivedValue(() => {
     return (
-      active.value !== -1 && runOnJS(setOpacity)(active.value === index ? 0.3 : 1)
+      typeof active.value === 'number' &&
+      runOnJS(setOpacity)(active.value === index ? 0.3 : 1)
     );
   });
+
   return (
-    <Marker
-      coordinate={coordinate}
-      key={coordinate.latitude + coordinate.longitude}
-      tracksViewChanges={false}
-      onPress={onPress}
-      opacity={opacity}>
-      <Animated.View style={[styles.container]} />
-    </Marker>
+      <Marker
+        coordinate={coordinate}
+        key={coordinate.latitude + coordinate.longitude}
+        tracksViewChanges={false}
+        onPress={onPress}
+        opacity={opacity}>
+          <Animated.View style={[styles.container]}>
+            <Text style={styles.label}>{amount}</Text>
+          </Animated.View>
+      </Marker>
   );
 };
 
@@ -47,5 +53,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'blue',
     borderWidth: 2,
     borderColor: '#fff',
+    justifyContent: "center",
+    alignItems: "center"
   },
+  label: {
+    color: "#fff",
+    fontWeight: "500"
+  }
 });

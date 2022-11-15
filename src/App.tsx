@@ -1,10 +1,20 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {ScrollView, StyleSheet, View} from 'react-native';
-import MapView, {PROVIDER_GOOGLE, Region} from 'react-native-maps';
+import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import MapView, {
+  Callout,
+  MapMarker,
+  Marker,
+  MarkerPressEvent,
+  Overlay,
+  PROVIDER_GOOGLE,
+  Region,
+} from 'react-native-maps';
 import {useSharedValue} from 'react-native-reanimated';
-import {CustomMarker, MapBar, Slider} from './components';
+import {CustomMarker, MapBar, Slider, SliderItem} from './components';
 import {TApartment} from './types';
 import {DIFFERENCE_X, height, width} from './constants';
+import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+
 const polygon = [
   {latitude: 37.790467601045584, longitude: -122.43995681405067},
   {latitude: 37.790467601045584, longitude: -122.4392195418477},
@@ -62,24 +72,26 @@ const aspectRatio = height / width;
 
 const App = () => {
   const mapRef = useRef<MapView>(null);
-  const [apartments, setApartments] = useState<TApartment[]>([]);
+  const [apartmentsSlider, setApartmentsSlider] = useState<TApartment[]>([]);
+  const [apartmentsCallout, setApartmentsCallout] = useState<
+    Record<string, TApartment[]>
+  >({});
   const [region, setRegion] = useState(initialRegion);
-  const active = useSharedValue(-1);
+  const activeMarker = useSharedValue(-1);
+  const activeMarkerCallout = useSharedValue(-1);
 
   const refSlider = useRef<ScrollView>(null);
-
   const onScrollHandler = useCallback((index: number) => {
-    active.value = index;
+    activeMarker.value = index;
   }, []);
 
   const onPressMarker = useCallback(
     ({lat, lon, index}: {lat: number; lon: number; index: number}) =>
       () => {
-        console.log('here', index, index * (width - DIFFERENCE_X) )
-        active.value = index;
+        activeMarkerCallout.value = -1;
+        activeMarker.value = index;
         refSlider.current?.scrollTo({
           x: index * (width - DIFFERENCE_X),
-          // x: 50,
           y: 0,
           animated: true,
         });
@@ -87,32 +99,95 @@ const App = () => {
     [],
   );
 
+  const onPressMarkerCallout = useCallback(
+    (index: number) => () => {
+      activeMarker.value = -1;
+      activeMarkerCallout.value = index;
+    },
+    [],
+  );
+
+  const markersCallout = useMemo(
+    () =>
+      Object.keys(apartmentsCallout)
+        .slice(1, 3)
+        .map((item, index) => {
+          return (
+            <CustomMarker
+              amount={apartmentsCallout[item].length}
+              key={item}
+              index={index}
+              coordinate={{
+                latitude: apartmentsCallout[item][0].address.location.lat,
+                longitude: apartmentsCallout[item][0].address.location.lon,
+              }}
+              active={activeMarkerCallout}
+              onPress={onPressMarkerCallout(index)}
+            />
+          );
+        }),
+    [apartmentsCallout, activeMarkerCallout],
+  );
+
   const markers = useMemo(
     () =>
-      apartments.length
-        ? apartments.slice(0, 5).map((apartment, index) => {
-            return (
-              <CustomMarker
-                key={apartment.id}
-                index={index}
-                active={active}
-                coordinate={{
-                  latitude: apartment.address.location.lat,
-                  longitude: apartment.address.location.lon,
-                }}
-                onPress={onPressMarker({...apartment.address.location, index})}
-              />
-            );
-          })
-        : [],
-    [apartments, active],
+      apartmentsSlider.slice(0, 5).map((apartment, index) => {
+        return (
+          <CustomMarker
+            key={apartment.id}
+            index={index}
+            active={activeMarker}
+            coordinate={{
+              latitude: apartment.address.location.lat,
+              longitude: apartment.address.location.lon,
+            }}
+            onPress={onPressMarker({...apartment.address.location, index})}
+          />
+        );
+      }),
+    [apartmentsSlider, activeMarker],
   );
 
   useEffect(() => {
     // axios('https://dev-phoenix.onmap.co.il/v1/properties/search').then(resp => {
     //   setApartments(resp.data.data);
     // });
-    setApartments(data);
+
+    const withCallout: TApartment[] = [];
+    const withSlider: TApartment[] = [];
+    
+    data.forEach((element: TApartment) => {
+      if (
+        data.filter(
+          (el: TApartment) =>
+            el.address.location.lat === element.address.location.lat &&
+            el.address.location.lon === element.address.location.lon,
+        ).length > 1
+      ) {
+        withCallout.push(element);
+      } else {
+        withSlider.push(element);
+      }
+    });
+
+    const withCallout_ = withCallout.reduce(
+      (acum: Record<string, TApartment[]>, item, index) => {
+        const key = `${item.address.location.lat}${item.address.location.lon}`;
+        if (acum.hasOwnProperty(key) && Array.isArray(acum[key])) {
+          acum[`${item.address.location.lat}${item.address.location.lon}`].push(
+            item,
+          );
+        } else {
+          acum[`${item.address.location.lat}${item.address.location.lon}`] = [
+            item,
+          ];
+        }
+        return acum;
+      },
+      {},
+    );
+    setApartmentsSlider(withSlider);
+    setApartmentsCallout(withCallout_);
   }, []);
 
   const mapZoomIn = () => {
@@ -145,22 +220,30 @@ const App = () => {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
+        cacheEnabled
         moveOnMarkerPress={false} //doesn't navigate to marker when it's  onPress
         loadingEnabled={true}
         style={styles.map}
-        onRegionChangeComplete={onRegionChangeComplete} 
+        onRegionChangeComplete={onRegionChangeComplete}
         minZoomLevel={2}
-        // provider={PROVIDER_GOOGLE}
+        provider={PROVIDER_GOOGLE}
         initialRegion={region}>
-        {markers.length ? markers : null}
+        {markersCallout}
+        {markers}
       </MapView>
       <MapBar mapZoomIn={mapZoomIn} mapZoomOut={mapZoomOut} />
       <View style={styles.sliderContainer}>
-        <Slider data={apartments.slice(0, 5)} ref={refSlider} onScroll={onScrollHandler} />
+        <Slider
+          data={apartmentsSlider}
+          ref={refSlider}
+          onScroll={onScrollHandler}
+        />
       </View>
     </View>
   );
 };
+
+export default App;
 
 const styles = StyleSheet.create({
   container: {
@@ -174,5 +257,3 @@ const styles = StyleSheet.create({
     bottom: 20,
   },
 });
-
-export default App;

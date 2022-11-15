@@ -30,7 +30,7 @@ const Slider = React.forwardRef<ScrollView, TProps>(
         decelerationRate="fast"
         snapToInterval={width - DIFFERENCE_X}>
         {data.map((item, index) => (
-          <SliderItem itemData={item} key={item.id} index={index} isLast={data.length - 1 === index} />
+          <SliderItem itemData={item} key={item.id} index={index} isLast={data.length - 1 === index} type={'horizontal'} />
         ))}
       </ScrollView>
     );

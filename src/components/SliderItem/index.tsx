@@ -9,9 +9,9 @@ type TProps = {
   itemData: TApartment;
   index: number;
   isLast: boolean;
+  type: 'vertical' | 'horizontal';
 };
-const SliderItem: React.FC<TProps> = ({itemData, index, isLast}) => {
-
+const SliderItem: React.FC<TProps> = ({itemData, index, isLast, type}) => {
   const imageUri = useMemo(
     () =>
       itemData?.images && itemData?.images[1] && itemData?.images[1].thumbnail
@@ -20,15 +20,27 @@ const SliderItem: React.FC<TProps> = ({itemData, index, isLast}) => {
     [],
   );
 
-  const containerStyle = useMemo(
-    () => [styles.container, index === 0 ? {marginLeft: ITEM_OFFSET_X / 2} : {}, isLast && {marginRight: ITEM_OFFSET_X / 2} ],
+  const containerStyleHorizontal = useMemo(
+    () => [
+      styles.container,
+      index === 0 ? {marginLeft: ITEM_OFFSET_X / 2} : {},
+      isLast && {marginRight: ITEM_OFFSET_X / 2},
+    ],
     [],
   );
 
+  const containerStyleVertical = useMemo(
+    () => [styles.container, {marginHorizontal: 0}],
+    [],
+  );
   return (
-    <View style={containerStyle}>
+    <View
+      style={
+        type === 'horizontal'
+          ? containerStyleHorizontal
+          : containerStyleVertical
+      }>
       <Image source={imageUri} style={styles.image} />
-
       <View style={styles.description}>
         <Text style={styles.title}>{itemData.property_type}</Text>
         <Text>city: {itemData.address.en.city_name}</Text>
