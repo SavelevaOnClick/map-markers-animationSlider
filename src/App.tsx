@@ -1,66 +1,32 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {Pressable, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import MapView, {
-  Callout,
-  MapMarker,
-  Marker,
-  MarkerPressEvent,
-  Overlay,
+  MapPressEvent,
   PROVIDER_GOOGLE,
   Region,
 } from 'react-native-maps';
-import {useSharedValue} from 'react-native-reanimated';
-import {CustomMarker, MapBar, Slider, SliderItem} from './components';
+import Animated, {useSharedValue} from 'react-native-reanimated';
+import {
+  CustomMarker,
+  MainModal,
+  MapBar,
+  Slider,
+  SliderItem,
+  SubModal,
+} from './components';
 import {TApartment} from './types';
-import {DIFFERENCE_X, height, width} from './constants';
-import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import {
+  DIFFERENCE_X,
+  height,
+  ITEM_WIDTH,
+  MARKER_SIZE,
+  SLIDER_VERTICAL_HEIGHT,
+  width,
+} from './constants';
+import CalloutSlider from './components/CalloutSlider';
+import {getModalPosition} from './helpers';
 
-const polygon = [
-  {latitude: 37.790467601045584, longitude: -122.43995681405067},
-  {latitude: 37.790467601045584, longitude: -122.4392195418477},
-  {latitude: 37.790467601045584, longitude: -122.43857447057964},
-  {latitude: 37.79032187603866, longitude: -122.4376068636775},
-  {latitude: 37.79017615074437, longitude: -122.43709992617367},
-  {latitude: 37.789994126200355, longitude: -122.43686959147452},
-  {latitude: 37.789520648321215, longitude: -122.43654705584049},
-  {latitude: 37.78875597646487, longitude: -122.43608605116604},
-  {latitude: 37.78802786160478, longitude: -122.43580978363752},
-  {latitude: 37.787627236395025, longitude: -122.43562538176775},
-  {latitude: 37.787481505786644, longitude: -122.43562538176775},
-  {latitude: 37.78729947460481, longitude: -122.43562538176775},
-  {latitude: 37.78719030867372, longitude: -122.43576351553202},
-  {latitude: 37.78704457720366, longitude: -122.43604011833666},
-  {latitude: 37.78693541089602, longitude: -122.43622452020645},
-  {latitude: 37.78675337836904, longitude: -122.436500787735},
-  {latitude: 37.786571345393675, longitude: -122.43696179240942},
-  {latitude: 37.786389047001, longitude: -122.43751466274263},
-  {latitude: 37.786243578920335, longitude: -122.43825193494557},
-  {latitude: 37.7861341464596, longitude: -122.4391732737422},
-  {latitude: 37.7861341464596, longitude: -122.44000274688005},
-  {latitude: 37.7861341464596, longitude: -122.4407859519124},
-  {latitude: 37.786279879724994, longitude: -122.44129288941623},
-  {latitude: 37.786498479084294, longitude: -122.44152322411537},
-  {latitude: 37.78668051223914, longitude: -122.44175355881453},
-  {latitude: 37.78682624442711, longitude: -122.44179982692002},
-  {latitude: 37.78700827677461, longitude: -122.4419379606843},
-  {latitude: 37.78719030867372, longitude: -122.4419842287898},
-  {latitude: 37.787336039856356, longitude: -122.4419842287898},
-  {latitude: 37.78755437112675, longitude: -122.4419842287898},
-  {latitude: 37.787809266769486, longitude: -122.44207609444857},
-  {latitude: 37.788209890992405, longitude: -122.44207609444857},
-  {latitude: 37.788573948422446, longitude: -122.44207609444857},
-  {latitude: 37.78890170455993, longitude: -122.4419842287898},
-  {latitude: 37.78919315988789, longitude: -122.44156949222088},
-  {latitude: 37.78944804987788, longitude: -122.44124695658684},
-  {latitude: 37.7896300757671, longitude: -122.44097035378216},
-  {latitude: 37.789702938988654, longitude: -122.4407859519124},
-  {latitude: 37.78984840025967, longitude: -122.44055561721325},
-  {latitude: 37.789994126200355, longitude: -122.4403715506196},
-  {latitude: 37.790103287989446, longitude: -122.44023308157921},
-  {latitude: 37.79017615074437, longitude: -122.44023308157921},
-];
 const {data} = require('./search.json');
-
 const initialRegion = {
   latitude: 48.3794,
   longitude: 31.1656,
@@ -72,39 +38,77 @@ const aspectRatio = height / width;
 
 const App = () => {
   const mapRef = useRef<MapView>(null);
+  const refSlider = useRef<ScrollView>(null);
+
+  const [region, setRegion] = useState(initialRegion);
+
   const [apartmentsSlider, setApartmentsSlider] = useState<TApartment[]>([]);
   const [apartmentsCallout, setApartmentsCallout] = useState<
     Record<string, TApartment[]>
   >({});
-  const [region, setRegion] = useState(initialRegion);
+
+  const [calloutSliderActiveData, setCalloutSliderActiveData] = useState<
+    TApartment[]
+  >([]);
+
   const activeMarker = useSharedValue(-1);
   const activeMarkerCallout = useSharedValue(-1);
 
-  const refSlider = useRef<ScrollView>(null);
+  const [subModalPosition, setSubModalPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const [mainModalVisible, setMainModalVisible] = useState<boolean>(false);
+  const [subModalVisible, setSubModalVisible] = useState<boolean>(false);
+
   const onScrollHandler = useCallback((index: number) => {
     activeMarker.value = index;
   }, []);
 
   const onPressMarker = useCallback(
-    ({lat, lon, index}: {lat: number; lon: number; index: number}) =>
-      () => {
-        activeMarkerCallout.value = -1;
-        activeMarker.value = index;
-        refSlider.current?.scrollTo({
-          x: index * (width - DIFFERENCE_X),
-          y: 0,
-          animated: true,
-        });
-      },
+    (index: number) => () => {
+      setSubModalVisible(false);
+      activeMarkerCallout.value = -1;
+      activeMarker.value = index;
+      refSlider.current?.scrollTo({
+        x: index * (width - DIFFERENCE_X),
+        y: 0,
+        animated: true,
+      });
+      setMainModalVisible(true);
+    },
     [],
   );
 
   const onPressMarkerCallout = useCallback(
-    (index: number) => () => {
-      activeMarker.value = -1;
-      activeMarkerCallout.value = index;
-    },
-    [],
+    ({lat, lon, index}: {lat: number; lon: number; index: number}) =>
+      async () => {
+        setMainModalVisible(false);
+        activeMarker.value = -1;
+        setCalloutSliderActiveData(
+          apartmentsCallout[Object.keys(apartmentsCallout).slice(1, 3)[index]],
+        );
+        const position = await mapRef.current?.pointForCoordinate({
+          latitude: lat,
+          longitude: lon,
+        });
+        position &&
+          setSubModalPosition(
+            getModalPosition(
+              position,
+              width,
+              height,
+              SLIDER_VERTICAL_HEIGHT,
+              ITEM_WIDTH,
+              MARKER_SIZE,
+            ),
+          );
+
+        activeMarkerCallout.value = index;
+        setSubModalVisible(true);
+      },
+    [apartmentsCallout],
   );
 
   const markersCallout = useMemo(
@@ -122,7 +126,10 @@ const App = () => {
                 longitude: apartmentsCallout[item][0].address.location.lon,
               }}
               active={activeMarkerCallout}
-              onPress={onPressMarkerCallout(index)}
+              onPress={onPressMarkerCallout({
+                ...apartmentsCallout[item][0].address.location,
+                index,
+              })}
             />
           );
         }),
@@ -134,14 +141,14 @@ const App = () => {
       apartmentsSlider.slice(0, 5).map((apartment, index) => {
         return (
           <CustomMarker
-            key={apartment.id}
-            index={index}
-            active={activeMarker}
             coordinate={{
               latitude: apartment.address.location.lat,
               longitude: apartment.address.location.lon,
             }}
-            onPress={onPressMarker({...apartment.address.location, index})}
+            onPress={onPressMarker(index)}
+            index={index}
+            active={activeMarker}
+            key={apartment.id}
           />
         );
       }),
@@ -155,7 +162,7 @@ const App = () => {
 
     const withCallout: TApartment[] = [];
     const withSlider: TApartment[] = [];
-    
+    //sorting into two arrays
     data.forEach((element: TApartment) => {
       if (
         data.filter(
@@ -169,9 +176,9 @@ const App = () => {
         withSlider.push(element);
       }
     });
-
+    //data transformation array(callout)
     const withCallout_ = withCallout.reduce(
-      (acum: Record<string, TApartment[]>, item, index) => {
+      (acum: Record<string, TApartment[]>, item) => {
         const key = `${item.address.location.lat}${item.address.location.lon}`;
         if (acum.hasOwnProperty(key) && Array.isArray(acum[key])) {
           acum[`${item.address.location.lat}${item.address.location.lon}`].push(
@@ -186,59 +193,95 @@ const App = () => {
       },
       {},
     );
+
     setApartmentsSlider(withSlider);
     setApartmentsCallout(withCallout_);
   }, []);
 
-  const mapZoomIn = () => {
-    mapRef?.current?.animateToRegion(
-      {
-        ...region,
-        latitudeDelta: region.latitudeDelta / aspectRatio,
-        longitudeDelta: region.longitudeDelta / aspectRatio,
-      },
-      300,
-    );
-  };
+  // const mapZoomIn = () => {
+  //   mapRef?.current?.animateToRegion(
+  //     {
+  //       ...region,
+  //       latitudeDelta: region.latitudeDelta / aspectRatio,
+  //       longitudeDelta: region.longitudeDelta / aspectRatio,
+  //     },
+  //     300,
+  //   );
+  // };
 
-  const mapZoomOut = () => {
-    mapRef?.current?.animateToRegion(
-      {
-        ...region,
-        latitudeDelta: region.latitudeDelta * aspectRatio,
-        longitudeDelta: region.longitudeDelta * aspectRatio,
-      },
-      300,
-    );
-  };
-  const onRegionChangeComplete = useCallback(
-    (props: Region) => setRegion(props),
-    [],
+  // const mapZoomOut = () => {
+  //   mapRef?.current?.animateToRegion(
+  //     {
+  //       ...region,
+  //       latitudeDelta: region.latitudeDelta * aspectRatio,
+  //       longitudeDelta: region.longitudeDelta * aspectRatio,
+  //     },
+  //     300,
+  //   );
+  // };
+
+  // const onRegionChangeComplete = useCallback(
+  //   (props: Region) => setRegion(props),
+  //   [],
+  // );
+
+  const onPressMapHandler = useCallback(
+    (event: MapPressEvent) => {
+      if (event.nativeEvent.action !== 'marker-press') {
+        if (mainModalVisible) {
+          setMainModalVisible(false);
+          activeMarker.value = -1;
+        }
+        if (subModalVisible) {
+          setSubModalVisible(false);
+
+          activeMarkerCallout.value = -1;
+        }
+      }
+    },
+    [mainModalVisible, subModalVisible],
   );
+
+  const onPanDragMapHandler = useCallback(() => {
+    if (subModalVisible) {
+      setSubModalVisible(false);
+      activeMarkerCallout.value = -1;
+    }
+    if (mainModalVisible) {
+      setMainModalVisible(false);
+      activeMarker.value = -1;
+    }
+  }, [subModalVisible, mainModalVisible]);
 
   return (
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        cacheEnabled
         moveOnMarkerPress={false} //doesn't navigate to marker when it's  onPress
         loadingEnabled={true}
+        onPanDrag={onPanDragMapHandler}
         style={styles.map}
-        onRegionChangeComplete={onRegionChangeComplete}
+        onPress={onPressMapHandler}
+        // onRegionChangeComplete={onRegionChangeComplete}
         minZoomLevel={2}
         provider={PROVIDER_GOOGLE}
         initialRegion={region}>
         {markersCallout}
         {markers}
       </MapView>
-      <MapBar mapZoomIn={mapZoomIn} mapZoomOut={mapZoomOut} />
-      <View style={styles.sliderContainer}>
-        <Slider
-          data={apartmentsSlider}
-          ref={refSlider}
-          onScroll={onScrollHandler}
-        />
-      </View>
+      {/* <MapBar mapZoomIn={mapZoomIn} mapZoomOut={mapZoomOut} /> */}
+      <SubModal
+        visible={subModalVisible}
+        data={calloutSliderActiveData}
+        position={subModalPosition}
+      />
+      <MainModal
+        setVisible={setMainModalVisible}
+        visible={mainModalVisible}
+        data={apartmentsSlider}
+        sliderRef={refSlider}
+        onScrollHandler={onScrollHandler}
+      />
     </View>
   );
 };
@@ -248,9 +291,12 @@ export default App;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   map: {
-    ...StyleSheet.absoluteFillObject,
+    width,
+    height,
   },
   sliderContainer: {
     position: 'absolute',

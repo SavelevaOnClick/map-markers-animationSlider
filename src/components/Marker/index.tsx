@@ -1,11 +1,13 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, } from 'react-native';
-import {LatLng, Marker, } from 'react-native-maps';
+import React, {useMemo, useState} from 'react';
+import {StyleSheet, Text, View} from 'react-native';
+import {LatLng, Marker} from 'react-native-maps';
 import Animated, {
   runOnJS,
   SharedValue,
   useDerivedValue,
+  useSharedValue,
 } from 'react-native-reanimated';
+import {MARKER_SIZE} from '../../constants';
 type TProps = {
   coordinate: LatLng;
   onPress: () => void;
@@ -20,44 +22,56 @@ const CustomMarker: React.FC<TProps> = ({
   index,
   amount,
 }) => {
-  const [opacity, setOpacity] = useState(active.value == index ? 0.3 : 1);
+  const [tracksViewChanges, setTracksViewChanges] = useState<boolean>(false);
+  const opacity = useSharedValue(active.value === index ? 0.3 : 1);
 
   useDerivedValue(() => {
-    return (
-      typeof active.value === 'number' &&
-      runOnJS(setOpacity)(active.value === index ? 0.3 : 1)
-    );
+    runOnJS(setTracksViewChanges)(active.value === index ? true : false);
+    return (opacity.value =
+      typeof active.value === 'number' && active.value === index ? 0.3 : 1);
   });
 
+  const markerStyle = useMemo(
+    () => [styles.marker, {opacity: opacity.value}],
+    [opacity.value],
+  );
+
   return (
-      <Marker
-        coordinate={coordinate}
-        key={coordinate.latitude + coordinate.longitude}
-        tracksViewChanges={false}
-        onPress={onPress}
-        opacity={opacity}>
-          <Animated.View style={[styles.container]}>
-            <Text style={styles.label}>{amount}</Text>
-          </Animated.View>
-      </Marker>
+    <Marker
+      coordinate={coordinate}
+      key={coordinate.latitude + coordinate.longitude}
+      tracksViewChanges={tracksViewChanges}
+      onPress={onPress}>
+      <View style={styles.markerContainer}>
+        <Animated.View style={markerStyle}>
+          <Text style={styles.label}>{amount}</Text>
+        </Animated.View>
+      </View>
+    </Marker>
   );
 };
 
 export default CustomMarker;
 
 const styles = StyleSheet.create({
-  container: {
-    width: 24,
-    height: 24,
-    borderRadius: 24 / 2,
+  markerContainer: {
+    width: MARKER_SIZE,
+    height: MARKER_SIZE,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: MARKER_SIZE / 2,
+  },
+  marker: {
+    width: MARKER_SIZE - 6,
+    height: MARKER_SIZE - 6,
+    borderRadius: (MARKER_SIZE - 6) / 2,
     backgroundColor: 'blue',
-    borderWidth: 2,
-    borderColor: '#fff',
-    justifyContent: "center",
-    alignItems: "center"
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   label: {
-    color: "#fff",
-    fontWeight: "500"
-  }
+    color: '#fff',
+    fontWeight: '500',
+  },
 });
