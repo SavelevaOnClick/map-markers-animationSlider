@@ -26,6 +26,7 @@ const CustomMarker: React.FC<TProps> = ({
 }) => {
   const [tracksViewChanges, setTracksViewChanges] = useState<boolean>(false);
   const opacity = useSharedValue(active.value === index ? 0.3 : 1);
+  const [elevation, setElevation] = useState<number>(index);
 
   const animatedOpacityStyle = useAnimatedStyle(() => {
     return {
@@ -35,6 +36,7 @@ const CustomMarker: React.FC<TProps> = ({
 
   const removeActive = useCallback(async () => {
     if (setTracksViewChanges) {
+      setElevation(index);
       opacity.value = withTiming(
         active.value === index ? 0.3 : 1,
         {},
@@ -55,20 +57,30 @@ const CustomMarker: React.FC<TProps> = ({
 
   useEffect(() => {
     if (tracksViewChanges) {
-      console.log('here');
       opacity.value = active.value === index ? 0.3 : 1;
+      setElevation(10000);
     }
   }, [tracksViewChanges]);
-  const markerStyle = useMemo(() => [styles.marker, animatedOpacityStyle], []);
+
+  const markerContentStyle = useMemo(
+    () => [styles.marker, animatedOpacityStyle],
+    [],
+  );
+
+  const markerStyle = useMemo(
+    () => ({zIndex: elevation, elevation: elevation}),
+    [elevation],
+  );
 
   return (
     <Marker
       coordinate={coordinate}
+      style={markerStyle}
       key={coordinate.latitude + coordinate.longitude}
       tracksViewChanges={tracksViewChanges}
       onPress={onPress}>
       <View style={styles.markerContainer}>
-        <Animated.View style={markerStyle}>
+        <Animated.View style={markerContentStyle}>
           <Text style={styles.label}>{amount}</Text>
         </Animated.View>
       </View>

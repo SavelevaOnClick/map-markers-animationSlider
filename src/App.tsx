@@ -278,7 +278,7 @@ const App = () => {
       <MainModal
         setVisible={setMainModalVisible}
         visible={mainModalVisible}
-        data={apartmentsSlider}
+        data={apartmentsSlider.slice(0, 5)}
         sliderRef={refSlider}
         onScrollHandler={onScrollHandler}
       />
