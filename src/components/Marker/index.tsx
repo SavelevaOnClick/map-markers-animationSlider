@@ -1,11 +1,13 @@
-import React, {useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {LatLng, Marker} from 'react-native-maps';
 import Animated, {
   runOnJS,
   SharedValue,
+  useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
+  withTiming,
 } from 'react-native-reanimated';
 import {MARKER_SIZE} from '../../constants';
 type TProps = {
@@ -25,16 +27,39 @@ const CustomMarker: React.FC<TProps> = ({
   const [tracksViewChanges, setTracksViewChanges] = useState<boolean>(false);
   const opacity = useSharedValue(active.value === index ? 0.3 : 1);
 
-  useDerivedValue(() => {
-    runOnJS(setTracksViewChanges)(active.value === index ? true : false);
-    return (opacity.value =
-      typeof active.value === 'number' && active.value === index ? 0.3 : 1);
+  const animatedOpacityStyle = useAnimatedStyle(() => {
+    return {
+      opacity: opacity.value,
+    };
   });
 
-  const markerStyle = useMemo(
-    () => [styles.marker, {opacity: opacity.value}],
-    [opacity.value],
-  );
+  const removeActive = useCallback(async () => {
+    if (setTracksViewChanges) {
+      opacity.value = withTiming(
+        active.value === index ? 0.3 : 1,
+        {},
+        isFinish => {
+          if (isFinish) {
+            runOnJS(setTracksViewChanges)(false);
+          }
+        },
+      );
+    }
+  }, []);
+
+  useDerivedValue(() => {
+    return active.value === index
+      ? runOnJS(setTracksViewChanges)(true)
+      : runOnJS(removeActive)();
+  }, []);
+
+  useEffect(() => {
+    if (tracksViewChanges) {
+      console.log('here');
+      opacity.value = active.value === index ? 0.3 : 1;
+    }
+  }, [tracksViewChanges]);
+  const markerStyle = useMemo(() => [styles.marker, animatedOpacityStyle], []);
 
   return (
     <Marker

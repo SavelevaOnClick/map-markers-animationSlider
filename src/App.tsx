@@ -198,32 +198,32 @@ const App = () => {
     setApartmentsCallout(withCallout_);
   }, []);
 
-  // const mapZoomIn = () => {
-  //   mapRef?.current?.animateToRegion(
-  //     {
-  //       ...region,
-  //       latitudeDelta: region.latitudeDelta / aspectRatio,
-  //       longitudeDelta: region.longitudeDelta / aspectRatio,
-  //     },
-  //     300,
-  //   );
-  // };
+  const mapZoomIn = () => {
+    mapRef?.current?.animateToRegion(
+      {
+        ...region,
+        latitudeDelta: region.latitudeDelta / aspectRatio,
+        longitudeDelta: region.longitudeDelta / aspectRatio,
+      },
+      300,
+    );
+  };
 
-  // const mapZoomOut = () => {
-  //   mapRef?.current?.animateToRegion(
-  //     {
-  //       ...region,
-  //       latitudeDelta: region.latitudeDelta * aspectRatio,
-  //       longitudeDelta: region.longitudeDelta * aspectRatio,
-  //     },
-  //     300,
-  //   );
-  // };
+  const mapZoomOut = () => {
+    mapRef?.current?.animateToRegion(
+      {
+        ...region,
+        latitudeDelta: region.latitudeDelta * aspectRatio,
+        longitudeDelta: region.longitudeDelta * aspectRatio,
+      },
+      300,
+    );
+  };
 
-  // const onRegionChangeComplete = useCallback(
-  //   (props: Region) => setRegion(props),
-  //   [],
-  // );
+  const onRegionChangeComplete = useCallback(
+    (props: Region) => setRegion(props),
+    [],
+  );
 
   const onPressMapHandler = useCallback(
     (event: MapPressEvent) => {
@@ -262,14 +262,14 @@ const App = () => {
         onPanDrag={onPanDragMapHandler}
         style={styles.map}
         onPress={onPressMapHandler}
-        // onRegionChangeComplete={onRegionChangeComplete}
+        onRegionChangeComplete={onRegionChangeComplete}
         minZoomLevel={2}
         provider={PROVIDER_GOOGLE}
         initialRegion={region}>
         {markersCallout}
         {markers}
       </MapView>
-      {/* <MapBar mapZoomIn={mapZoomIn} mapZoomOut={mapZoomOut} /> */}
+      <MapBar mapZoomIn={mapZoomIn} mapZoomOut={mapZoomOut} />
       <SubModal
         visible={subModalVisible}
         data={calloutSliderActiveData}
